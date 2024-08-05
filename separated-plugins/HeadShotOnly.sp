@@ -11,7 +11,7 @@ public Plugin:myinfo = {
     url = "https://discord.gg/jpDDWsDZra"
 };
 
-// Define HITGROUP_HEAD if not already defined
+// Define HITGROUP_HEAD 
 #define HITGROUP_HEAD 1
 
 // Global variable to control the "only head" mode
