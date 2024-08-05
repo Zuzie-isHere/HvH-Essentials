@@ -30,8 +30,14 @@ public Plugin:myinfo = {
     author = "Axeline",
     description = "Provides akhelmdeagle to each team at the start of each round, increases jump height, and toggles headshot-only mode.",
     version = "0.2",
-    url = "https://discord.gg/jpDDWsDZra" 
+    url = "https://discord.gg/jpDDWsDZra"
 };
+
+#define UPDATE_INTERVAL 5.0 // Update interval in seconds
+
+// Definition of offsets for entity data
+#define ACTIVE_OFFSET 1896
+#define CLIP_OFFSET 1204
 
 public void OnPluginStart() {
     // Hook events
@@ -55,6 +61,16 @@ public void OnPluginStart() {
             OnClientPutInServer(i);
         }
     }
+
+    // Hook OnTakeDamage
+    for (int i = 1; i <= MaxClients; i++) {
+        if (IsClientInGame(i)) {
+            SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+        }
+    }
+
+    // Create a timer that calls Timer_UpdateAmmo every UPDATE_INTERVAL seconds
+    CreateTimer(UPDATE_INTERVAL, Timer_UpdateAmmo, _, TIMER_REPEAT);
 }
 
 public Action:EventPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -73,8 +89,8 @@ public Action:EventPlayerSpawn(Handle:event, const String:name[], bool:dontBroad
         }
     }
 
-    // Hook TraceAttack
-    OnClientPutInServer(client);
+    // Hook OnTakeDamage
+    SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 
     return Plugin_Continue;
 }
@@ -147,8 +163,8 @@ void GiveItemsToPlayer(int client, const String:items[]) {
 public Action:TraceAttack(victim, &attacker, &inflictor, &Float:damage, &damagetype, &ammotype, hitbox, hitgroup) {
     // Validate attacker and victim
     if (attacker > 0 && attacker <= MaxClients && attacker != victim) {
-        // Allow fall and explosion damage
-        if ((damagetype & DMG_FALL) == DMG_FALL || (damagetype & DMG_BLAST) == DMG_BLAST) {
+        // Allow explosion damage
+        if ((damagetype & DMG_BLAST) == DMG_BLAST) {
             return Plugin_Continue;
         }
 
@@ -175,6 +191,17 @@ public Action:TraceAttack(victim, &attacker, &inflictor, &Float:damage, &damaget
     return Plugin_Continue;
 }
 
+// Handle damage
+public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype) {
+    // Anular daño por caída
+    if ((damagetype & DMG_FALL) == DMG_FALL) {
+        damage = 0.0;
+        return Plugin_Changed;
+    }
+
+    return Plugin_Continue;
+}
+
 // Enable "only head" mode
 public Action:Command_OnlyHeadEnable(client, args) {
     g_bOnlyHeadMode = true;
@@ -192,4 +219,41 @@ public Action:Command_OnlyHeadDisable(client, args) {
 // Hook TraceAttack on client join
 public OnClientPutInServer(client) {
     SDKHook(client, SDKHook_TraceAttack, TraceAttack);
+    SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+}
+
+public Action:Timer_UpdateAmmo(Handle:timer) {
+    // Iterate over all clients
+    for (int i = 1; i <= MaxClients; i++) {
+        // Check if the client is in game and alive
+        if (IsClientInGame(i) && IsPlayerAlive(i)) {
+            // Get the active entity of the client
+            int activeEntity = GetEntDataEnt2(i, ACTIVE_OFFSET);
+
+            // Check if the entity is valid
+            if (IsValidEntity(activeEntity)) {
+                // Set the clip ammo value to 100
+                SetEntData(activeEntity, CLIP_OFFSET, 100, 4, true);
+            }
+        }
+    }
+    return Plugin_Continue;
+}
+
+stock TakeDamageV34(victim, ddamage, attacker = -1, dmgflags = 0, const String:weapon[] = "") {
+    new String:strDmg[8], String:strDmgFlags[16];
+    IntToString(ddamage, strDmg, sizeof(strDmg));
+    IntToString(dmgflags, strDmgFlags, sizeof(strDmgFlags));   
+    new hurtent = CreateEntityByName("point_hurt"); 
+    if(hurtent) {
+        DispatchKeyValue(victim, "targetname", "dmgtarget");
+        DispatchKeyValue(hurtent, "DamageTarget", "dmgtarget"); 
+        DispatchKeyValue(hurtent, "Damage", strDmg);
+        DispatchKeyValue(hurtent, "DamageType", strDmgFlags); 
+        if(weapon[0]) DispatchKeyValue(hurtent, "classname", weapon);
+        DispatchSpawn(hurtent);
+        AcceptEntityInput(hurtent, "Hurt", (attacker > 0) ? attacker : -1);
+        DispatchKeyValue(victim, "targetname", "nodmg");
+        RemoveEdict(hurtent);
+    }
 }
