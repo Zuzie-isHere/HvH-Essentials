@@ -1,3 +1,13 @@
+/**
+ * Plugin Name: HvH Essentials
+ * Author: Axeline
+ * License: MIT
+ * Discord: iloveducks_x
+ * 
+ * 
+ */
+
+
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
