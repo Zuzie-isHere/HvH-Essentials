@@ -28,10 +28,11 @@ bool g_bOnlyHeadMode = false;
 public Plugin:myinfo = {
     name = "HvH Essentials",
     author = "Axeline",
-    description = "Provides akhelmdeagle to each team at the start of each round, increases jump height, and toggles headshot-only mode.",
-    version = "0.2",
+    description = "Provides AK-47 and Desert Eagle to each team at the start of each round, increases jump height, toggles headshot-only mode, gives unlimited ammo, and prevents fall damage.",
+    version = "0.3",
     url = "https://discord.gg/jpDDWsDZra"
 };
+
 
 #define UPDATE_INTERVAL 5.0 // Update interval in seconds
 
