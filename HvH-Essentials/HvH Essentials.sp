@@ -194,7 +194,7 @@ public Action:TraceAttack(victim, &attacker, &inflictor, &Float:damage, &damaget
 
 // Handle damage
 public Action:OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype) {
-    // Anular daño por caída
+    // Nullify fall damage
     if ((damagetype & DMG_FALL) == DMG_FALL) {
         damage = 0.0;
         return Plugin_Changed;
